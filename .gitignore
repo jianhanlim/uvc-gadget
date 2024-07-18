@@ -1,1 +1,92 @@
+# Compiled object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+*.def
+*.exp
+
+# Shared objects (Shared libraries)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.dSBT/
+*.dwp
+*.pfb
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Meson generated files
+build/
+meson-out/
+meson-logs/
+meson-private/
+
+# Autotools generated files
+*.in
+*.m4
+.aclocal.m4
+*.am
+*.swp
+*.log
+*.trs
+.deps/
+.libs/
+autom4te.cache/
+compile
+config.*
+configure
+config.status
+config.log
+depcomp
+install-sh
+ltmain.sh
+missing
+stamp-h1
+build-aux/
+
+# Make generated files
+*.d
+*.gcno
+*.gcda
+
+# Ignore by-products of build tools
+*.dirstamp
+*.o.cmd
+
+# Backup files
+*~
+# Temporary files
+*.tmp
+*.temp
+# Editor specific files
+.vscode/
+.idea/
+# System files
+.DS_Store
+Thumbs.db
 build
