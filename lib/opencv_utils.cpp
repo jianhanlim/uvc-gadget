@@ -31,14 +31,20 @@ void detect_and_draw_faces(void* frame_data, int width, int height) {
 
         face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0|CASCADE_SCALE_IMAGE, Size(20, 20));
 
-        printf("Number of faces detected: %lu\n", faces.size());
+        //printf("Number of faces detected: %lu\n", faces.size());
         for (size_t i = 0; i < faces.size(); i++) {
             Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
             ellipse(frame, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 2);
         }
         last_face_detect_time = now;
-    } else {
     }
+
+    // Add timestamp
+    char timestamp[100];
+    struct tm* tm_info;
+    tm_info = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
+    putText(frame, timestamp, Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
 }
 
 void rotate_frame_90_clockwise(void* frame_data, int width, int height) {
