@@ -53,15 +53,16 @@ static void uvc_stream_source_process(void *d,
         return;
     }
 
-    int frame_width = fmt.width;
-    int frame_height = fmt.height;
+    // ROTATE FRAME does not work here, need check on it
+    //int frame_width = fmt.width;
+    //int frame_height = fmt.height;
 
     // Rotate the frame 90 degrees clockwise
     //rotate_frame_90_clockwise(buffer->mem, frame_width, frame_height);
 
     // Update the format dimensions if needed
-    fmt.width = frame_height;
-    fmt.height = frame_width;
+    //fmt.width = frame_height;
+    //fmt.height = frame_width;
 
     detect_and_draw_faces(buffer->mem, fmt.width, fmt.height);
 
