@@ -39,15 +39,22 @@ struct uvc_stream
  */
 
 static void uvc_stream_source_process(void *d,
-                                      struct video_source *src __attribute__((unused)),
+                                      struct video_source *src,
                                       struct video_buffer *buffer)
 {
-    struct uvc_stream *stream = d;
+    struct uvc_stream *stream = (struct uvc_stream *)d;
     struct v4l2_device *sink = uvc_v4l2_device(stream->uvc);
 
-    // Assume frame dimensions are known or retrievable from video source
-    int frame_width = 640;  // Replace with actual width
-    int frame_height = 480; // Replace with actual height
+    // Retrieve the frame width and height from the video source
+    struct v4l2_pix_format fmt;
+    int ret = video_source_get_format(src, &fmt);
+    if (ret < 0) {
+        fprintf(stderr, "Failed to get video format from source\n");
+        return;
+    }
+
+    int frame_width = fmt.width;
+    int frame_height = fmt.height;
 
     detect_and_draw_faces(buffer->mem, frame_width, frame_height);
 
@@ -334,24 +341,25 @@ int uvc_stream_set_frame_rate(struct uvc_stream *stream, unsigned int fps)
 
 struct uvc_stream *uvc_stream_new(const char *uvc_device)
 {
-    struct uvc_stream *stream;
+	struct uvc_stream *stream;
 
-    stream = (uvc_stream *)malloc(sizeof(*stream));
-    if (stream == NULL)
-        return NULL;
+	stream = malloc(sizeof(*stream));
+	if (stream == NULL)
+		return NULL;
 
-    memset(stream, 0, sizeof(*stream));
+	memset(stream, 0, sizeof(*stream));
 
-    stream->uvc = uvc_open(uvc_device, stream);
-    if (stream->uvc == NULL)
-        goto error;
+	stream->uvc = uvc_open(uvc_device, stream);
+	if (stream->uvc == NULL)
+		goto error;
 
-    return stream;
+	return stream;
 
 error:
-    free(stream);
-    return NULL;
+	free(stream);
+	return NULL;
 }
+
 
 void uvc_stream_delete(struct uvc_stream *stream)
 {

@@ -29,6 +29,18 @@ int video_source_set_format(struct video_source *src,
 	return src->ops->set_format(src, fmt);
 }
 
+int video_source_get_format(struct video_source *src, struct v4l2_pix_format *fmt)
+{
+    if (!src || !fmt) {
+        return -EINVAL;
+    }
+
+    // Assuming src->format contains the current format information
+    *fmt = src->format;
+
+    return 0;
+}
+
 int video_source_set_frame_rate(struct video_source *src, unsigned int fps)
 {
 	return src->ops->set_frame_rate(src, fps);

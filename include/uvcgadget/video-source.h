@@ -59,6 +59,7 @@ void video_source_set_buffer_handler(struct video_source *src,
 				     video_source_buffer_handler_t handler,
 				     void *data);
 void video_source_destroy(struct video_source *src);
+int video_source_get_format(struct video_source *src, struct v4l2_pix_format *fmt);
 int video_source_set_format(struct video_source *src,
 			    struct v4l2_pix_format *fmt);
 int video_source_set_frame_rate(struct video_source *src, unsigned int fps);
