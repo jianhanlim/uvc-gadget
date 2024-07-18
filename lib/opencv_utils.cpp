@@ -36,3 +36,10 @@ void detect_and_draw_faces(void* frame_data, int width, int height) {
         last_face_detect_time = now;
     }
 }
+
+void rotate_frame_90_clockwise(void* frame_data, int width, int height) {
+    Mat frame(height, width, CV_8UC3, frame_data);
+    Mat rotated_frame;
+    rotate(frame, rotated_frame, ROTATE_90_CLOCKWISE);
+    memcpy(frame_data, rotated_frame.data, rotated_frame.total() * rotated_frame.elemSize());
+}

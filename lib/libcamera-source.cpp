@@ -178,6 +178,22 @@ static void libcamera_source_destroy(struct video_source *s)
 	delete src;
 }
 
+static int libcamera_source_get_format(struct video_source *s, struct v4l2_pix_format *fmt)
+{
+    struct libcamera_source *src = to_libcamera_source(s);
+    StreamConfiguration &streamConfig = src->config->at(0);
+
+    fmt->width = streamConfig.size.width;
+    fmt->height = streamConfig.size.height;
+    fmt->pixelformat = streamConfig.pixelFormat.fourcc();
+    fmt->field = V4L2_FIELD_ANY;
+
+    // TODO: Calculate the correct sizeimage value based on the pixel format and dimensions
+    fmt->sizeimage = fmt->width * fmt->height * 2;
+
+    return 0;
+}
+
 static int libcamera_source_set_format(struct video_source *s,
 				       struct v4l2_pix_format *fmt)
 {
@@ -448,6 +464,7 @@ static int libcamera_source_queue_buffer(struct video_source *s,
 static const struct video_source_ops libcamera_source_ops = {
 	.destroy = libcamera_source_destroy,
 	.set_format = libcamera_source_set_format,
+	.get_format = libcamera_source_get_format, // Add this line
 	.set_frame_rate = libcamera_source_set_frame_rate,
 	.alloc_buffers = libcamera_source_alloc_buffers,
 	.export_buffers = libcamera_source_export_buffers,
