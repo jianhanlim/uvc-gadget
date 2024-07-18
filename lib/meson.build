@@ -13,6 +13,7 @@ libuvcgadget_sources = files([
   'v4l2-source.c',
   'video-buffers.c',
   'video-source.c',
+  'opencv_utils.cpp'
 ])
 
 if libcamera.found()

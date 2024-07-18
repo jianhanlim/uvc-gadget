@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/objdetect.hpp>
 #include <time.h>
 
 #include "events.h"
@@ -21,43 +19,20 @@
 #include "v4l2.h"
 #include "video-buffers.h"
 #include "video-source.h"
-
-using namespace cv;
+#include "opencv_utils.h"
 
 /*
  * struct uvc_stream - Representation of a UVC stream
  * @src: video source
  * @uvc: UVC V4L2 output device
  * @events: struct events containing event information
- * @face_cascade: OpenCV face cascade classifier
- * @last_face_detect_time: time of last face detection run
  */
 struct uvc_stream
 {
     struct video_source *src;
     struct uvc_device *uvc;
     struct events *events;
-
-    CascadeClassifier face_cascade;
-    time_t last_face_detect_time;
 };
-
-static void detect_and_draw_faces(Mat &frame, CascadeClassifier &face_cascade)
-{
-    std::vector<Rect> faces;
-    Mat frame_gray;
-
-    cvtColor(frame, frame_gray, COLOR_BGR2GRAY);
-    equalizeHist(frame_gray, frame_gray);
-
-    face_cascade.detectMultiScale(frame_gray, faces);
-
-    for (size_t i = 0; i < faces.size(); i++)
-    {
-        Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
-        ellipse(frame, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 2);
-    }
-}
 
 /* ---------------------------------------------------------------------------
  * Video streaming
@@ -69,14 +44,12 @@ static void uvc_stream_source_process(void *d,
 {
     struct uvc_stream *stream = d;
     struct v4l2_device *sink = uvc_v4l2_device(stream->uvc);
-    Mat frame(buffer->height, buffer->width, CV_8UC3, buffer->mem);
 
-    time_t now = time(NULL);
-    if (difftime(now, stream->last_face_detect_time) >= 1.0)
-    {
-        detect_and_draw_faces(frame, stream->face_cascade);
-        stream->last_face_detect_time = now;
-    }
+    // Assume frame dimensions are known or retrievable from video source
+    int frame_width = 640;  // Replace with actual width
+    int frame_height = 480; // Replace with actual height
+
+    detect_and_draw_faces(buffer->mem, frame_width, frame_height);
 
     v4l2_queue_buffer(sink, buffer);
 }
@@ -283,9 +256,8 @@ static int uvc_stream_start(struct uvc_stream *stream)
     printf("Starting video stream.\n");
 
     // Load OpenCV face detection model
-    if (!stream->face_cascade.load("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"))
+    if (load_face_cascade("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml") < 0)
     {
-        fprintf(stderr, "Error loading face cascade\n");
         return -1;
     }
 
