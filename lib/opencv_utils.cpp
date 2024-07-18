@@ -44,7 +44,10 @@ void detect_and_draw_faces(void* frame_data, int width, int height) {
     struct tm* tm_info;
     tm_info = localtime(&now);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
-    putText(frame, timestamp, Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    putText(frame, timestamp, Point(10, 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(255, 255, 255), 2);
+
+    // Copy the modified frame back to the buffer
+    memcpy(frame_data, frame.data, frame.total() * frame.elemSize());
 }
 
 void rotate_frame_90_clockwise(void* frame_data, int width, int height) {
