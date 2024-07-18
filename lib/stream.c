@@ -57,7 +57,7 @@ static void uvc_stream_source_process(void *d,
     int frame_height = fmt.height;
 
     // Rotate the frame 90 degrees clockwise
-    rotate_frame_90_clockwise(buffer->mem, frame_width, frame_height);
+    //rotate_frame_90_clockwise(buffer->mem, frame_width, frame_height);
 
     // Update the format dimensions if needed
     fmt.width = frame_height;

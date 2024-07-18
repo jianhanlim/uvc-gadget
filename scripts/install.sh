@@ -30,6 +30,7 @@ sudo meson install
 sudo ldconfig
 
 chmod +x /home/$USER/uvc-gadget/scripts/multi-gadget.sh
+sudo cp /home/$USER/uvc-gadget/scripts/video_formats.txt /etc/video_formats.txt
 
 # Adding everything to /etc/rc.local
 if grep -Fq "multi-gadget.sh" /etc/rc.local
