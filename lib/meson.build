@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-Identifier: CC0-1.0
 
 libuvcgadget_sources = files([
   'configfs.c',
@@ -23,9 +23,11 @@ if libjpeg.found() and threads.found()
   libuvcgadget_sources += files(['mjpeg_encoder.cpp'])
 endif
 
+opencv = dependency('opencv4', required: true)
+
 libuvcgadget = shared_library('uvcgadget',
                               libuvcgadget_sources,
-                              dependencies : [libcamera, libjpeg, threads],
+                              dependencies : [libcamera, libjpeg, threads, opencv],
                               version : uvc_gadget_version,
                               install : true,
                               include_directories : [includes, config_includes])

@@ -56,6 +56,7 @@ cc = meson.get_compiler('c')
 libcamera = dependency('libcamera', required : false)
 libjpeg = dependency('libjpeg', required : false)
 threads = dependency('threads', required : false)
+opencv = dependency('opencv4', required : true)
 
 conf = configuration_data()
 
