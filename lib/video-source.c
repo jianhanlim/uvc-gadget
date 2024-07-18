@@ -8,6 +8,7 @@
  */
 
 #include "video-source.h"
+#include <errno.h>
 
 void video_source_set_buffer_handler(struct video_source *src,
 				     video_source_buffer_handler_t handler,
