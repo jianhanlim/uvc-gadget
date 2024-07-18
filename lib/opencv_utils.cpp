@@ -56,3 +56,12 @@ void rotate_frame_90_clockwise(void* frame_data, int width, int height) {
     rotate(frame, rotated_frame, ROTATE_90_CLOCKWISE);
     memcpy(frame_data, rotated_frame.data, rotated_frame.total() * rotated_frame.elemSize());
 }
+
+void mat_to_mjpeg_buffer(void* frame_data, int width, int height, void* jpg_buffer_data)
+{
+    std::vector<uchar> jpgbuffer;
+    Mat frame(height, width, CV_8UC3, frame_data);
+    std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY, 95}; // Quality set to 95
+    imencode(".jpg", frame, jpgbuffer, compression_params);
+    memcpy(jpg_buffer_data, jpgbuffer.data(), jpgbuffer.size());
+}
