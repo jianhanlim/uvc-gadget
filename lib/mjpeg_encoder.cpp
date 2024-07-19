@@ -11,10 +11,12 @@
 
 #include <jpeglib.h>
 #include <opencv2/opencv.hpp>
-
+#include <time.h>
 #include <libcamera/libcamera.h>
 
 #include "mjpeg_encoder.hpp"
+
+using namespace cv;
 
 #if JPEG_LIB_VERSION_MAJOR > 9 || (JPEG_LIB_VERSION_MAJOR == 9 && JPEG_LIB_VERSION_MINOR >= 4)
 typedef size_t jpeg_mem_len_t;
@@ -92,6 +94,13 @@ void MjpegEncoder::encodeJPEG(struct jpeg_compress_struct &cinfo, EncodeItem &it
 
     // Rotate the RGB frame by 90 degrees clockwise
     cv::rotate(rgb, rotatedFrame, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+	char timestamp[100];
+    struct tm* tm_info;
+	time_t now = time(NULL);
+    tm_info = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
+    putText(rotatedFrame, timestamp, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
 
     // Convert back to YUV420
     cv::Mat rotatedYUV;
