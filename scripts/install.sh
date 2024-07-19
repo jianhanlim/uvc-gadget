@@ -36,7 +36,7 @@ then
     sudo chmod +x /etc/rc.local
 else
     head -n-1 /etc/rc.local > /tmp/rc.local ;
-    echo "sudo /home/$USER/uvc-gadget/scripts/multi-gadget.sh" >> /tmp/rc.local ;
+    echo "sudo bash /home/$USER/uvc-gadget/scripts/multi-gadget.sh" >> /tmp/rc.local ;
     echo "uvc-gadget -c 0 uvc.0 &" >> /tmp/rc.local ;
     tail -n 1 /etc/rc.local >> /tmp/rc.local
     sudo mv /tmp/rc.local /etc/rc.local
