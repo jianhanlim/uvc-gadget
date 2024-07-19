@@ -201,8 +201,11 @@ static int libcamera_source_set_format(struct video_source *s,
 	StreamConfiguration &streamConfig = src->config->at(0);
 	__u32 chosen_pixelformat = fmt->pixelformat;
 
-	streamConfig.size.width = fmt->width;
-	streamConfig.size.height = fmt->height;
+	// TEMPORARY SOLUTION: SWITCH WIDTH AND HEIGHT HERE MANUALLY, libcamera read horizontal view, and mjpeg encoder will rotate it 90 degree
+	streamConfig.size.width = fmt->height;		
+	streamConfig.size.height = fmt->width;
+	//streamConfig.size.width = fmt->width;		
+	//streamConfig.size.height = fmt->height;
 	streamConfig.pixelFormat = PixelFormat(chosen_pixelformat);
 
 	src->config->validate();
@@ -577,10 +580,14 @@ struct video_source *libcamera_source_create(const char *devname)
 
 	src->config =
 		src->camera->generateConfiguration( { StreamRole::VideoRecording });
+	
 	if (!src->config) {
 		std::cerr << "failed to generate camera config" << std::endl;
 		goto err_release_camera;
 	}
+
+	// DOES NOT SUPPORT ROTATE 90 or 270. ONLY CAN ROTATE 180
+	//src->config->transform = Transform::Rot270;
 
 	src->camera->requestCompleted.connect(src, &libcamera_source::requestComplete);
 

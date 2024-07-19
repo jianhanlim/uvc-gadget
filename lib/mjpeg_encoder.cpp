@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 #include <jpeglib.h>
+#include <opencv2/opencv.hpp>
 
 #include <libcamera/libcamera.h>
 
@@ -50,50 +51,81 @@ void MjpegEncoder::EncodeBuffer(void *mem, void *dest, unsigned int size,
 }
 
 void MjpegEncoder::encodeJPEG(struct jpeg_compress_struct &cinfo, EncodeItem &item,
-			      uint8_t *&encoded_buffer, size_t &buffer_len)
+                              uint8_t *&encoded_buffer, size_t &buffer_len)
 {
-	cinfo.image_width = item.info.width;
-	cinfo.image_height = item.info.height;
-	cinfo.input_components = 3;
-	cinfo.in_color_space = JCS_YCbCr;
-	cinfo.restart_interval = 0;
+    // Initial width and height (before rotation)
+    int original_width = item.info.width;
+    int original_height = item.info.height;
 
-	jpeg_set_defaults(&cinfo);
-	cinfo.raw_data_in = TRUE;
-	jpeg_set_quality(&cinfo, 50, TRUE);
+    // Rotated dimensions
+    int rotated_width = original_height;
+    int rotated_height = original_width;
+	//std::cout << "Original Dimensions: " << original_width << "x" << original_height << std::endl;
+	//std::cout << "Rotated Dimensions: " << rotated_width << "x" << rotated_height << std::endl;
 
-	jpeg_mem_len_t jpeg_mem_len = buffer_len;
-	jpeg_mem_dest(&cinfo, &encoded_buffer, &jpeg_mem_len);
-	jpeg_start_compress(&cinfo, TRUE);
+    cinfo.image_width = rotated_width;
+    cinfo.image_height = rotated_height;
+    cinfo.input_components = 3;
+    cinfo.in_color_space = JCS_YCbCr;
+    cinfo.restart_interval = 0;
 
-	int stride2 = item.info.stride / 2;
-	uint8_t *Y = (uint8_t *)item.mem;
-	uint8_t *U = (uint8_t *)Y + item.info.stride * item.info.height;
-	uint8_t *V = (uint8_t *)U + stride2 * (item.info.height / 2);
-	uint8_t *Y_max = U - item.info.stride;
-	uint8_t *U_max = V - stride2;
-	uint8_t *V_max = U_max + stride2 * (item.info.height / 2);
+    jpeg_set_defaults(&cinfo);
+    cinfo.raw_data_in = TRUE;
+    jpeg_set_quality(&cinfo, 50, TRUE);
 
-	JSAMPROW y_rows[16];
-	JSAMPROW u_rows[8];
-	JSAMPROW v_rows[8];
+    jpeg_mem_len_t jpeg_mem_len = buffer_len;
+    jpeg_mem_dest(&cinfo, &encoded_buffer, &jpeg_mem_len);
+    jpeg_start_compress(&cinfo, TRUE);
 
-	for (uint8_t *Y_row = Y, *U_row = U, *V_row = V; cinfo.next_scanline < item.info.height;)
-	{
-		for (int i = 0; i < 16; i++, Y_row += item.info.stride)
-			y_rows[i] = std::min(Y_row, Y_max);
-		for (int i = 0; i < 8; i++, U_row += stride2, V_row += stride2) {
-			u_rows[i] = std::min(U_row, U_max);
-			v_rows[i] = std::min(V_row, V_max);
-		}
+    int stride2 = item.info.stride / 2;
+    uint8_t *Y = (uint8_t *)item.mem;
+    uint8_t *U = (uint8_t *)Y + item.info.stride * original_height;
+    uint8_t *V = (uint8_t *)U + stride2 * (original_height / 2);
 
-		JSAMPARRAY rows[] = { y_rows, u_rows, v_rows };
-		jpeg_write_raw_data(&cinfo, rows, 16);
-	}
+    // Create cv::Mat for YUV420 data
+    cv::Mat yuv(original_height + original_height / 2, original_width, CV_8UC1, Y);
+    cv::Mat rgb;
+    cv::Mat rotatedFrame;
 
-	jpeg_finish_compress(&cinfo);
+    // Convert YUV420 to RGB
+    cv::cvtColor(yuv, rgb, cv::COLOR_YUV2BGR_I420);
 
-	buffer_len = jpeg_mem_len;
+    // Rotate the RGB frame by 90 degrees clockwise
+    cv::rotate(rgb, rotatedFrame, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+    // Convert back to YUV420
+    cv::Mat rotatedYUV;
+    cv::cvtColor(rotatedFrame, rotatedYUV, cv::COLOR_BGR2YUV_I420);
+
+    // Set the Y, U, V pointers to the rotated data
+    Y = rotatedYUV.data;
+    U = Y + rotated_width * rotated_height;
+    V = U + (rotated_width / 2) * (rotated_height / 2);
+
+    uint8_t *Y_max = U - rotated_width;
+    uint8_t *U_max = V - (rotated_width / 2);
+    uint8_t *V_max = U_max + (rotated_width / 2) * (rotated_height / 2);
+
+    JSAMPROW y_rows[16];
+    JSAMPROW u_rows[8];
+    JSAMPROW v_rows[8];
+
+    for (uint8_t *Y_row = Y, *U_row = U, *V_row = V; cinfo.next_scanline < (JDIMENSION)rotated_height;)
+    {
+        for (int i = 0; i < 16; i++, Y_row += rotated_width)
+            y_rows[i] = std::min(Y_row, Y_max);
+        for (int i = 0; i < 8; i++, U_row += rotated_width / 2, V_row += rotated_width / 2) {
+            u_rows[i] = std::min(U_row, U_max);
+            v_rows[i] = std::min(V_row, V_max);
+        }
+
+        JSAMPARRAY rows[] = { y_rows, u_rows, v_rows };
+        jpeg_write_raw_data(&cinfo, rows, 16);
+    }
+
+    jpeg_finish_compress(&cinfo);
+
+    buffer_len = jpeg_mem_len;
 }
 
 void MjpegEncoder::encodeThread(int num)

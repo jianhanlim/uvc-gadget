@@ -24,10 +24,7 @@ fi
 cd /home/$USER
 git clone https://github.com/jianhanlim/uvc-gadget.git
 cd /home/$USER/uvc-gadget
-make uvc-gadget
-cd build
-sudo meson install
-sudo ldconfig
+make uvc-gadget && cd build && sudo meson install && sudo ldconfig
 
 chmod +x /home/$USER/uvc-gadget/scripts/multi-gadget.sh
 sudo cp /home/$USER/uvc-gadget/scripts/video_formats.txt /etc/video_formats.txt
