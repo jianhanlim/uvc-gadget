@@ -19,6 +19,7 @@
 
 #include "configfs.h"
 #include "events.h"
+#include "led_control.h"
 #include "stream.h"
 #include "tools.h"
 #include "uvc.h"
@@ -387,10 +388,12 @@ static void uvc_events_process(void *d)
 		return;
 
 	case UVC_EVENT_STREAMON:
+		turn_led_on();
 		uvc_stream_enable(dev->stream, 1);
 		return;
 
 	case UVC_EVENT_STREAMOFF:
+		turn_led_off();
 		uvc_stream_enable(dev->stream, 0);
 		return;
 	}
