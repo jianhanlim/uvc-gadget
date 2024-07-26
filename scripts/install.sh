@@ -1,8 +1,9 @@
 #!/bin/sh
+# This script must run without sudo
 
 sudo apt-get -y update
 sudo apt-get -y upgrade
-sudo apt-get install -y git libopencv-dev
+sudo apt-get install -y git libopencv-dev meson libcamera-dev
 
 # Modify /boot/config.txt and /boot/cmdline.txt files
 if grep -Fq "dtoverlay=dwc2" /boot/config.txt
