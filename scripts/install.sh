@@ -38,7 +38,7 @@ then
 else
     head -n-1 /etc/rc.local > /tmp/rc.local ;
     echo "sudo bash /home/$USER/uvc-gadget/scripts/multi-gadget.sh" >> /tmp/rc.local ;
-    echo "uvc-gadget -c 0 uvc.0 &" >> /tmp/rc.local ;
+    echo "sudo uvc-gadget -c 0 uvc.0 &" >> /tmp/rc.local ;  # must run with sudo to control the led light
     tail -n 1 /etc/rc.local >> /tmp/rc.local
     sudo mv /tmp/rc.local /etc/rc.local
     sudo chmod +x /etc/rc.local

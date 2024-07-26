@@ -5,7 +5,7 @@
 
 int find_led_controller_pid()
 {
-    if (0 == system("ps aux | grep 'led_controller.py' | grep 'sudo' | awk '{print $2}' > /tmp/led_controller_pid"))
+    if (0 == system("ps aux | grep 'led_controller.py' | grep -v 'sudo' | grep -v 'grep' | awk '{print $2}' > /tmp/led_controller_pid"))
     {
         printf("led_controller.py found\n");
         FILE *fptr = fopen("/tmp/led_controller_pid", "r");
