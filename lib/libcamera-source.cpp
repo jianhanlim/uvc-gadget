@@ -592,17 +592,28 @@ struct video_source *libcamera_source_create(const char *devname)
 	src->camera->requestCompleted.connect(src, &libcamera_source::requestComplete);
 
 	{
-		/*
-		 * We enable AutoFocus by default if it's supported by the camera.
-		 * Keep the infoMap scoped to calm the compiler worrying about
-		 * jumping over the reference with the gotos.
-		 */
-		const ControlInfoMap &infoMap = src->camera->controls();
-		if (infoMap.find(&controls::AfMode) != infoMap.end()) {
-			std::cout << "Enabling continuous auto-focus" << std::endl;
-			src->controls.set(controls::AfMode, controls::AfModeContinuous);
-		}
-	}
+        /*
+         * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
+         * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
+         */
+        const ControlInfoMap &infoMap = src->camera->controls();
+        if (infoMap.find(&controls::AfMode) != infoMap.end()) {
+            std::cout << "Enabling continuous auto-focus" << std::endl;
+            src->controls.set(controls::AfMode, controls::AfModeContinuous);
+        }
+        if (infoMap.find(&controls::AeEnable) != infoMap.end()) {
+            std::cout << "Enabling auto exposure" << std::endl;
+            src->controls.set(controls::AeEnable, true);
+        }
+        if (infoMap.find(&controls::AwbEnable) != infoMap.end()) {
+            std::cout << "Enabling auto white balance" << std::endl;
+            src->controls.set(controls::AwbEnable, true);
+        }
+		if (infoMap.find(&controls::Brightness) != infoMap.end()) {
+            std::cout << "Enabling Brightness" << std::endl;
+            src->controls.set(controls::Brightness, 0.15);
+        }
+    }
 
 	return &src->src;
 
