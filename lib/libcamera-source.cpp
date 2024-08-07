@@ -611,7 +611,7 @@ struct video_source *libcamera_source_create(const char *devname)
         }
 		if (infoMap.find(&controls::Brightness) != infoMap.end()) {
             std::cout << "Enabling Brightness" << std::endl;
-            src->controls.set(controls::Brightness, 0.3);
+            src->controls.set(controls::Brightness, 0.2);
         }
     }
 
