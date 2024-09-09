@@ -596,8 +596,8 @@ struct video_source *libcamera_source_create(const char *devname)
          * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
          * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
          */
-	const ControlInfoMap &infoMap = src->camera->controls();
-	for (const auto &control : infoMap) {
+	const ControlInfoMap &infoMap1 = src->camera->controls();
+	for (const auto &control : infoMap1) {
 	    std::cout << "Control: " << control.first->name() << std::endl;
 	}
         const ControlInfoMap &infoMap = src->camera->controls();
