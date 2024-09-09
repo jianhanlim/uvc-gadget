@@ -627,11 +627,10 @@ struct video_source *libcamera_source_create(const char *devname)
 	    std::cout << "Setting analogue gain" << std::endl;
 	    src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
 	}
-	if (infoMap.find(&controls::NoiseReductionMode) != infoMap.end()) {
+	if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end()) {
 	    std::cout << "Enabling noise reduction" << std::endl;
-	    src->controls.set(controls::NoiseReductionMode, 2); // Example value for noise reduction
+	    src->controls.set(controls::draft::NoiseReductionMode, 2); // Example value for noise reduction
 	}
-	
 	if (infoMap.find(&controls::AeMeteringMode) != infoMap.end()) {
 	    std::cout << "Setting metering mode" << std::endl;
 	    src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
