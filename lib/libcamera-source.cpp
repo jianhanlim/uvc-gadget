@@ -613,10 +613,29 @@ struct video_source *libcamera_source_create(const char *devname)
             std::cout << "Enabling auto white balance" << std::endl;
             src->controls.set(controls::AwbEnable, true);
         }
-		if (infoMap.find(&controls::Brightness) != infoMap.end()) {
-            std::cout << "Enabling Brightness" << std::endl;
-            src->controls.set(controls::Brightness, 0.2);
-        }
+	//if (infoMap.find(&controls::Brightness) != infoMap.end()) {
+        //    std::cout << "Enabling Brightness" << std::endl;
+        //    src->controls.set(controls::Brightness, 0.2);
+        //}
+	// Set a specific exposure time
+	if (infoMap.find(&controls::ExposureTime) != infoMap.end()) {
+	    std::cout << "Setting custom exposure time" << std::endl;
+	    src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
+	}
+	// Adjust the analogue gain
+	if (infoMap.find(&controls::AnalogueGain) != infoMap.end()) {
+	    std::cout << "Setting analogue gain" << std::endl;
+	    src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
+	}
+	if (infoMap.find(&controls::NoiseReductionMode) != infoMap.end()) {
+	    std::cout << "Enabling noise reduction" << std::endl;
+	    src->controls.set(controls::NoiseReductionMode, 2); // Example value for noise reduction
+	}
+	
+	if (infoMap.find(&controls::AeMeteringMode) != infoMap.end()) {
+	    std::cout << "Setting metering mode" << std::endl;
+	    src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
+	}
     }
 
 	return &src->src;
