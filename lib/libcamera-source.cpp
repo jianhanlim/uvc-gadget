@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
 #include <memory.h>
 #include <queue>
@@ -25,7 +26,8 @@
 #include "config.h"
 #include "mjpeg_encoder.hpp"
 
-extern "C" {
+extern "C"
+{
 #include "events.h"
 #include "libcamera-source.h"
 #include "tools.h"
@@ -35,9 +37,48 @@ extern "C" {
 using namespace libcamera;
 using namespace std::placeholders;
 
+namespace fs = std::filesystem;
+
 #define to_libcamera_source(s) container_of(s, struct libcamera_source, src)
 
-struct libcamera_source {
+static bool set_imx708_subdev_hdr_ctrl(int en, const std::string &cam_id)
+{
+	for (unsigned int i = 0; i < 16; i++)
+	{
+		const fs::path test_dir{"/sys/class/video4linux/v4l-subdev" + std::to_string(i) + "/device"};
+		const fs::path module_dir{test_dir.string() + "/driver/module"};
+		const fs::path id_dir{test_dir.string() + "/of_node"};
+
+		if (fs::exists(module_dir) && fs::is_symlink(module_dir))
+		{
+			fs::path ln = fs::read_symlink(module_dir);
+			if (ln.string().find("imx708") != std::string::npos &&
+				fs::is_symlink(id_dir) && fs::read_symlink(id_dir).string().find(cam_id) != std::string::npos)
+			{
+				const std::string dev_node{"/dev/v4l-subdev" + std::to_string(i)};
+				int fd = open(dev_node.c_str(), O_RDONLY, 0);
+				if (fd < 0)
+					continue;
+
+				v4l2_control ctrl{V4L2_CID_WIDE_DYNAMIC_RANGE, en};
+				if (!xioctl(fd, VIDIOC_G_CTRL, &ctrl) && ctrl.value != en)
+				{
+					ctrl.value = en;
+					if (!xioctl(fd, VIDIOC_S_CTRL, &ctrl))
+					{
+						close(fd);
+						return true;
+					}
+				}
+				close(fd);
+			}
+		}
+	}
+	return false;
+}
+
+struct libcamera_source
+{
 	struct video_source src;
 
 	std::unique_ptr<CameraManager> cm;
@@ -64,14 +105,16 @@ void libcamera_source::mapBuffer(const std::unique_ptr<FrameBuffer> &buffer)
 {
 	size_t buffer_size = 0;
 
-	for (unsigned int i = 0; i < buffer->planes().size(); i++) {
+	for (unsigned int i = 0; i < buffer->planes().size(); i++)
+	{
 		const FrameBuffer::Plane &plane = buffer->planes()[i];
 		buffer_size += plane.length;
 
 		if (i == buffer->planes().size() - 1 ||
-			plane.fd.get() != buffer->planes()[i + 1].fd.get()) {
+			plane.fd.get() != buffer->planes()[i + 1].fd.get())
+		{
 			void *memory = mmap(NULL, buffer_size, PROT_READ | PROT_WRITE,
-						MAP_SHARED, plane.fd.get(), 0);
+								MAP_SHARED, plane.fd.get(), 0);
 			mapped_buffers_[buffer.get()] =
 				Span<uint8_t>(static_cast<uint8_t *>(memory), buffer_size);
 			buffer_size = 0;
@@ -137,7 +180,8 @@ static void libcamera_source_video_process(void *d)
 	 * encoder. The encoder will queue that buffer to the sink after
 	 * compression.
 	 */
-	if (src->src.type == VIDEO_SOURCE_ENCODED) {
+	if (src->src.type == VIDEO_SOURCE_ENCODED)
+	{
 		int64_t timestamp_ns = framebuf->metadata().timestamp;
 		StreamInfo info = src->encoder->getStreamInfo(stream);
 		auto span = src->mapped_buffers_.find(framebuf);
@@ -180,32 +224,32 @@ static void libcamera_source_destroy(struct video_source *s)
 
 static int libcamera_source_get_format(struct video_source *s, struct v4l2_pix_format *fmt)
 {
-    struct libcamera_source *src = to_libcamera_source(s);
-    StreamConfiguration &streamConfig = src->config->at(0);
+	struct libcamera_source *src = to_libcamera_source(s);
+	StreamConfiguration &streamConfig = src->config->at(0);
 
-    fmt->width = streamConfig.size.width;
-    fmt->height = streamConfig.size.height;
-    fmt->pixelformat = streamConfig.pixelFormat.fourcc();
-    fmt->field = V4L2_FIELD_ANY;
+	fmt->width = streamConfig.size.width;
+	fmt->height = streamConfig.size.height;
+	fmt->pixelformat = streamConfig.pixelFormat.fourcc();
+	fmt->field = V4L2_FIELD_ANY;
 
-    // TODO: Calculate the correct sizeimage value based on the pixel format and dimensions
-    fmt->sizeimage = fmt->width * fmt->height * 2;
+	// TODO: Calculate the correct sizeimage value based on the pixel format and dimensions
+	fmt->sizeimage = fmt->width * fmt->height * 2;
 
-    return 0;
+	return 0;
 }
 
 static int libcamera_source_set_format(struct video_source *s,
-				       struct v4l2_pix_format *fmt)
+									   struct v4l2_pix_format *fmt)
 {
 	struct libcamera_source *src = to_libcamera_source(s);
 	StreamConfiguration &streamConfig = src->config->at(0);
 	__u32 chosen_pixelformat = fmt->pixelformat;
 
 	// TEMPORARY SOLUTION: SWITCH WIDTH AND HEIGHT HERE MANUALLY, libcamera read horizontal view, and mjpeg encoder will rotate it 90 degree
-	streamConfig.size.width = fmt->height;		
+	streamConfig.size.width = fmt->height;
 	streamConfig.size.height = fmt->width;
-	//streamConfig.size.width = fmt->width;		
-	//streamConfig.size.height = fmt->height;
+	// streamConfig.size.width = fmt->width;
+	// streamConfig.size.height = fmt->height;
 	streamConfig.pixelFormat = PixelFormat(chosen_pixelformat);
 
 	src->config->validate();
@@ -216,7 +260,8 @@ static int libcamera_source_set_format(struct video_source *s,
 	 * with YUV420 and initialise an MjpegEncoder to compress the data.
 	 */
 	if (chosen_pixelformat == V4L2_PIX_FMT_MJPEG &&
-	    streamConfig.pixelFormat.fourcc() != chosen_pixelformat) {
+		streamConfig.pixelFormat.fourcc() != chosen_pixelformat)
+	{
 		std::cout << "MJPEG format not natively supported; encoding YUV420" << std::endl;
 
 		src->encoder = new MjpegEncoder();
@@ -256,7 +301,7 @@ static int libcamera_source_set_frame_rate(struct video_source *s, unsigned int 
 	int64_t frame_time = 1000000 / fps;
 
 	src->controls.set(controls::FrameDurationLimits,
-			  Span<const int64_t, 2>({ frame_time, frame_time }));
+					  Span<const int64_t, 2>({frame_time, frame_time}));
 
 	return 0;
 }
@@ -269,7 +314,8 @@ static int libcamera_source_alloc_buffers(struct video_source *s, unsigned int n
 
 	streamConfig.bufferCount = nbufs;
 	ret = src->camera->configure(src->config.get());
-	if (ret) {
+	if (ret)
+	{
 		std::cerr << "failed to configure the camera" << std::endl;
 		return ret;
 	}
@@ -280,7 +326,8 @@ static int libcamera_source_alloc_buffers(struct video_source *s, unsigned int n
 	allocator = new FrameBufferAllocator(src->camera);
 
 	ret = allocator->allocate(stream);
-	if (ret < 0) {
+	if (ret < 0)
+	{
 		std::cerr << "failed to allocate buffers" << std::endl;
 		return ret;
 	}
@@ -290,18 +337,21 @@ static int libcamera_source_alloc_buffers(struct video_source *s, unsigned int n
 	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = allocator->buffers(stream);
 	src->buffers.nbufs = buffers.size();
 
-	if (src->src.type == VIDEO_SOURCE_ENCODED) {
+	if (src->src.type == VIDEO_SOURCE_ENCODED)
+	{
 		for (const std::unique_ptr<FrameBuffer> &buffer : buffers)
 			src->mapBuffer(buffer);
 	}
 
 	src->buffers.buffers = (video_buffer *)calloc(src->buffers.nbufs, sizeof(*src->buffers.buffers));
-	if (!src->buffers.buffers) {
+	if (!src->buffers.buffers)
+	{
 		std::cerr << "failed to allocate buffers" << std::endl;
 		return -ENOMEM;
 	}
 
-	for (unsigned int i = 0; i < buffers.size(); ++i) {
+	for (unsigned int i = 0; i < buffers.size(); ++i)
+	{
 		src->buffers.buffers[i].index = i;
 		src->buffers.buffers[i].dmabuf = -1;
 	}
@@ -310,7 +360,7 @@ static int libcamera_source_alloc_buffers(struct video_source *s, unsigned int n
 }
 
 static int libcamera_source_export_buffers(struct video_source *s,
-					   struct video_buffer_set **bufs)
+										   struct video_buffer_set **bufs)
 {
 	struct libcamera_source *src = to_libcamera_source(s);
 	Stream *stream = src->config->at(0).stream();
@@ -318,7 +368,8 @@ static int libcamera_source_export_buffers(struct video_source *s,
 	struct video_buffer_set *vid_buf_set;
 	unsigned int i;
 
-	for (i = 0; i < buffers.size(); i++) {
+	for (i = 0; i < buffers.size(); i++)
+	{
 		const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
 
 		src->buffers.buffers[i].size = buffer->planes()[0].length;
@@ -329,7 +380,8 @@ static int libcamera_source_export_buffers(struct video_source *s,
 	if (!vid_buf_set)
 		return -ENOMEM;
 
-	for (i = 0; i < src->buffers.nbufs; ++i) {
+	for (i = 0; i < src->buffers.nbufs; ++i)
+	{
 		struct video_buffer *buffer = &src->buffers.buffers[i];
 
 		vid_buf_set->buffers[i].size = buffer->size;
@@ -342,7 +394,7 @@ static int libcamera_source_export_buffers(struct video_source *s,
 }
 
 static int libcamera_source_import_buffers(struct video_source *s,
-					   struct video_buffer_set *buffers)
+										   struct video_buffer_set *buffers)
 {
 	struct libcamera_source *src = to_libcamera_source(s);
 
@@ -377,16 +429,19 @@ static int libcamera_source_stream_on(struct video_source *s)
 
 	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = src->allocator->buffers(stream);
 
-	for (unsigned int i = 0; i < buffers.size(); ++i) {
+	for (unsigned int i = 0; i < buffers.size(); ++i)
+	{
 		std::unique_ptr<Request> request = src->camera->createRequest(i);
-		if (!request) {
+		if (!request)
+		{
 			std::cerr << "failed to create request" << std::endl;
 			return -ENOMEM;
 		}
 
 		const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
 		ret = request->addBuffer(stream, buffer.get());
-		if (ret < 0) {
+		if (ret < 0)
+		{
 			std::cerr << "failed to set buffer for request" << std::endl;
 			return ret;
 		}
@@ -395,14 +450,17 @@ static int libcamera_source_stream_on(struct video_source *s)
 	}
 
 	ret = src->camera->start(&src->controls);
-	if (ret) {
+	if (ret)
+	{
 		std::cerr << "failed to start camera" << std::endl;
 		return ret;
 	}
 
-	for (std::unique_ptr<Request> &request : src->requests) {
+	for (std::unique_ptr<Request> &request : src->requests)
+	{
 		ret = src->camera->queueRequest(request.get());
-		if (ret) {
+		if (ret)
+		{
 			std::cerr << "failed to queue request" << std::endl;
 			src->camera->stop();
 			return ret;
@@ -416,7 +474,7 @@ static int libcamera_source_stream_on(struct video_source *s)
 	 * requestComplete() is ran.
 	 */
 	events_watch_fd(src->src.events, src->pfds[0], EVENT_READ,
-			libcamera_source_video_process, src);
+					libcamera_source_video_process, src);
 
 	return 0;
 }
@@ -432,7 +490,8 @@ static int libcamera_source_stream_off(struct video_source *s)
 	while (!src->completed_requests.empty())
 		src->completed_requests.pop();
 
-	if (src->src.type == VIDEO_SOURCE_ENCODED) {
+	if (src->src.type == VIDEO_SOURCE_ENCODED)
+	{
 		delete src->encoder;
 		src->encoder = nullptr;
 	}
@@ -448,12 +507,14 @@ static int libcamera_source_stream_off(struct video_source *s)
 }
 
 static int libcamera_source_queue_buffer(struct video_source *s,
-					 struct video_buffer *buf)
+										 struct video_buffer *buf)
 {
 	struct libcamera_source *src = to_libcamera_source(s);
 
-	for (std::unique_ptr<Request> &r : src->requests) {
-		if (r->cookie() == buf->index) {
+	for (std::unique_ptr<Request> &r : src->requests)
+	{
+		if (r->cookie() == buf->index)
+		{
 			r->reuse(Request::ReuseBuffers);
 			src->camera->queueRequest(r.get());
 
@@ -485,8 +546,10 @@ std::string cameraName(Camera *camera)
 	std::string name;
 
 	const auto &location = props.get(properties::Location);
-	if (location) {
-		switch (*location) {
+	if (location)
+	{
+		switch (*location)
+		{
 		case properties::CameraLocationFront:
 			name = "Internal Front Camera";
 			break;
@@ -511,7 +574,8 @@ struct video_source *libcamera_source_create(const char *devname)
 	struct libcamera_source *src;
 	int ret;
 
-	if (!devname) {
+	if (!devname)
+	{
 		std::cerr << "No camera identifier was passed" << std::endl;
 		return NULL;
 	}
@@ -528,7 +592,8 @@ struct video_source *libcamera_source_create(const char *devname)
 	 */
 
 	ret = pipe2(src->pfds, O_NONBLOCK);
-	if (ret) {
+	if (ret)
+	{
 		std::cerr << "failed to create pipe" << std::endl;
 		goto err_free_src;
 	}
@@ -539,7 +604,8 @@ struct video_source *libcamera_source_create(const char *devname)
 	src->cm = std::make_unique<CameraManager>();
 	src->cm->start();
 
-	if (src->cm->cameras().empty()) {
+	if (src->cm->cameras().empty())
+	{
 		std::cout << "No cameras were identified on the system" << std::endl;
 		goto err_close_pipe;
 	}
@@ -553,25 +619,52 @@ struct video_source *libcamera_source_create(const char *devname)
 	 * If the first character is a digit, assume we're indexing, otherwise
 	 * treat it as an ID.
 	 */
-	if (std::isdigit(devname[0])) {
+	if (std::isdigit(devname[0]))
+	{
 		unsigned long index = std::atoi(devname);
 
-		if (index >= src->cm->cameras().size()) {
+		if (index >= src->cm->cameras().size())
+		{
 			std::cerr << "No camera at index " << index << std::endl;
 			goto err_close_pipe;
 		}
 
 		src->camera = src->cm->cameras()[index];
-	} else {
+
+		// This is the way HDR is activated in rpicam-vid. Check commit:
+		// `core: Better handling of IMX708 sensor HDR`
+		// in rpicam-apps project.
+		const std::string cam_id = src->camera->properties().get(libcamera::properties::Model);
+		if (cam_id.find("imx708") != std::string::npos)
+		{
+			// HDR control. Set the sensor control before opening or listing any cameras.
+			// Start by disabling HDR unconditionally. Reset the camera manager if we have
+			// actually switched the value of the control
+			bool changed = set_imx708_subdev_hdr_ctrl(0, src->cm->cameras[index]->id());
+
+			// Turn on sensor HDR.  Reset the camera manager if we have switched the value of the control.
+			changed |= set_imx708_subdev_hdr_ctrl(1, src->cm->cameras[index]->id());
+
+			if (changed)
+			{
+				src->cm->cameras.clear();
+				src->cm->start();
+			}
+		}
+	}
+	else
+	{
 		src->camera = src->cm->get(std::string(devname));
-		if (!src->camera) {
+		if (!src->camera)
+		{
 			std::cerr << "found no camera matching " << devname << std::endl;
 			goto err_close_pipe;
 		}
 	}
 
 	ret = src->camera->acquire();
-	if (ret) {
+	if (ret)
+	{
 		fprintf(stderr, "failed to acquire camera\n");
 		goto err_close_pipe;
 	}
@@ -579,63 +672,72 @@ struct video_source *libcamera_source_create(const char *devname)
 	std::cout << "Using camera " << cameraName(src->camera.get()) << std::endl;
 
 	src->config =
-		src->camera->generateConfiguration( { StreamRole::VideoRecording });
-	
-	if (!src->config) {
+		src->camera->generateConfiguration({StreamRole::VideoRecording});
+
+	if (!src->config)
+	{
 		std::cerr << "failed to generate camera config" << std::endl;
 		goto err_release_camera;
 	}
 
 	// DOES NOT SUPPORT ROTATE 90 or 270. ONLY CAN ROTATE 180
-	//src->config->transform = Transform::Rot270;
+	// src->config->transform = Transform::Rot270;
 
 	src->camera->requestCompleted.connect(src, &libcamera_source::requestComplete);
 
 	{
-        /*
-         * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
-         * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
-         */
-	const ControlInfoMap &infoMap1 = src->camera->controls();
-	for (const auto &control : infoMap1) {
-	    std::cout << "Control: " << control.first->name() << std::endl;
+		/*
+		 * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
+		 * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
+		 */
+		const ControlInfoMap &infoMap1 = src->camera->controls();
+		for (const auto &control : infoMap1)
+		{
+			std::cout << "Control: " << control.first->name() << std::endl;
+		}
+		const ControlInfoMap &infoMap = src->camera->controls();
+		if (infoMap.find(&controls::AfMode) != infoMap.end())
+		{
+			std::cout << "Enabling continuous auto-focus" << std::endl;
+			src->controls.set(controls::AfMode, controls::AfModeContinuous);
+		}
+		if (infoMap.find(&controls::AeEnable) != infoMap.end())
+		{
+			std::cout << "Enabling auto exposure" << std::endl;
+			src->controls.set(controls::AeEnable, true);
+		}
+		if (infoMap.find(&controls::AwbEnable) != infoMap.end())
+		{
+			std::cout << "Enabling auto white balance" << std::endl;
+			src->controls.set(controls::AwbEnable, true);
+		}
+		// if (infoMap.find(&controls::Brightness) != infoMap.end()) {
+		//     std::cout << "Enabling Brightness" << std::endl;
+		//     src->controls.set(controls::Brightness, 0.2);
+		// }
+		// Set a specific exposure time
+		if (infoMap.find(&controls::ExposureTime) != infoMap.end())
+		{
+			std::cout << "Setting custom exposure time" << std::endl;
+			src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
+		}
+		// Adjust the analogue gain
+		if (infoMap.find(&controls::AnalogueGain) != infoMap.end())
+		{
+			std::cout << "Setting analogue gain" << std::endl;
+			src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
+		}
+		if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end())
+		{
+			std::cout << "Enabling noise reduction" << std::endl;
+			src->controls.set(controls::draft::NoiseReductionMode, 2); // Example value for noise reduction
+		}
+		if (infoMap.find(&controls::AeMeteringMode) != infoMap.end())
+		{
+			std::cout << "Setting metering mode" << std::endl;
+			src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
+		}
 	}
-        const ControlInfoMap &infoMap = src->camera->controls();
-        if (infoMap.find(&controls::AfMode) != infoMap.end()) {
-            std::cout << "Enabling continuous auto-focus" << std::endl;
-            src->controls.set(controls::AfMode, controls::AfModeContinuous);
-        }
-        if (infoMap.find(&controls::AeEnable) != infoMap.end()) {
-            std::cout << "Enabling auto exposure" << std::endl;
-            src->controls.set(controls::AeEnable, true);
-        }
-        if (infoMap.find(&controls::AwbEnable) != infoMap.end()) {
-            std::cout << "Enabling auto white balance" << std::endl;
-            src->controls.set(controls::AwbEnable, true);
-        }
-	//if (infoMap.find(&controls::Brightness) != infoMap.end()) {
-        //    std::cout << "Enabling Brightness" << std::endl;
-        //    src->controls.set(controls::Brightness, 0.2);
-        //}
-	// Set a specific exposure time
-	if (infoMap.find(&controls::ExposureTime) != infoMap.end()) {
-	    std::cout << "Setting custom exposure time" << std::endl;
-	    src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
-	}
-	// Adjust the analogue gain
-	if (infoMap.find(&controls::AnalogueGain) != infoMap.end()) {
-	    std::cout << "Setting analogue gain" << std::endl;
-	    src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
-	}
-	if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end()) {
-	    std::cout << "Enabling noise reduction" << std::endl;
-	    src->controls.set(controls::draft::NoiseReductionMode, 2); // Example value for noise reduction
-	}
-	if (infoMap.find(&controls::AeMeteringMode) != infoMap.end()) {
-	    std::cout << "Setting metering mode" << std::endl;
-	    src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
-	}
-    }
 
 	return &src->src;
 
