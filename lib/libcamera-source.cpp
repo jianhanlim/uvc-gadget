@@ -685,59 +685,59 @@ struct video_source *libcamera_source_create(const char *devname)
 
 	src->camera->requestCompleted.connect(src, &libcamera_source::requestComplete);
 
-	{
-		/*
-		 * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
-		 * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
-		 */
-		const ControlInfoMap &infoMap1 = src->camera->controls();
-		for (const auto &control : infoMap1)
-		{
-			std::cout << "Control: " << control.first->name() << std::endl;
-		}
-		const ControlInfoMap &infoMap = src->camera->controls();
-		if (infoMap.find(&controls::AfMode) != infoMap.end())
-		{
-			std::cout << "Enabling continuous auto-focus" << std::endl;
-			src->controls.set(controls::AfMode, controls::AfModeContinuous);
-		}
-		if (infoMap.find(&controls::AeEnable) != infoMap.end())
-		{
-			std::cout << "Enabling auto exposure" << std::endl;
-			src->controls.set(controls::AeEnable, true);
-		}
-		if (infoMap.find(&controls::AwbEnable) != infoMap.end())
-		{
-			std::cout << "Enabling auto white balance" << std::endl;
-			src->controls.set(controls::AwbEnable, true);
-		}
-		// if (infoMap.find(&controls::Brightness) != infoMap.end()) {
-		//     std::cout << "Enabling Brightness" << std::endl;
-		//     src->controls.set(controls::Brightness, 0.2);
-		// }
-		// Set a specific exposure time
-		if (infoMap.find(&controls::ExposureTime) != infoMap.end())
-		{
-			std::cout << "Setting custom exposure time" << std::endl;
-			src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
-		}
-		// Adjust the analogue gain
-		if (infoMap.find(&controls::AnalogueGain) != infoMap.end())
-		{
-			std::cout << "Setting analogue gain" << std::endl;
-			src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
-		}
-		if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end())
-		{
-			std::cout << "Enabling noise reduction" << std::endl;
-			src->controls.set(controls::draft::NoiseReductionMode, 2); // Example value for noise reduction
-		}
-		if (infoMap.find(&controls::AeMeteringMode) != infoMap.end())
-		{
-			std::cout << "Setting metering mode" << std::endl;
-			src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
-		}
-	}
+	// {
+	// 	/*
+	// 	 * We enable AutoFocus, Auto Exposure, Auto White Balance, and brightness by default if they are supported by the camera.
+	// 	 * Keep the infoMap scoped to calm the compiler worrying about jumping over the reference with the gotos.
+	// 	 */
+	// 	const ControlInfoMap &infoMap1 = src->camera->controls();
+	// 	for (const auto &control : infoMap1)
+	// 	{
+	// 		std::cout << "Control: " << control.first->name() << std::endl;
+	// 	}
+	// 	const ControlInfoMap &infoMap = src->camera->controls();
+	// 	if (infoMap.find(&controls::AfMode) != infoMap.end())
+	// 	{
+	// 		std::cout << "Enabling continuous auto-focus" << std::endl;
+	// 		src->controls.set(controls::AfMode, controls::AfModeContinuous);
+	// 	}
+	// 	if (infoMap.find(&controls::AeEnable) != infoMap.end())
+	// 	{
+	// 		std::cout << "Enabling auto exposure" << std::endl;
+	// 		src->controls.set(controls::AeEnable, true);
+	// 	}
+	// 	if (infoMap.find(&controls::AwbEnable) != infoMap.end())
+	// 	{
+	// 		std::cout << "Enabling auto white balance" << std::endl;
+	// 		src->controls.set(controls::AwbEnable, true);
+	// 	}
+	// 	// if (infoMap.find(&controls::Brightness) != infoMap.end()) {
+	// 	//     std::cout << "Enabling Brightness" << std::endl;
+	// 	//     src->controls.set(controls::Brightness, 0.2);
+	// 	// }
+	// 	// Set a specific exposure time
+	// 	if (infoMap.find(&controls::ExposureTime) != infoMap.end())
+	// 	{
+	// 		std::cout << "Setting custom exposure time" << std::endl;
+	// 		src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
+	// 	}
+	// 	// Adjust the analogue gain
+	// 	if (infoMap.find(&controls::AnalogueGain) != infoMap.end())
+	// 	{
+	// 		std::cout << "Setting analogue gain" << std::endl;
+	// 		src->controls.set(controls::AnalogueGain, 2.0); // Adjust gain, 2.0 is just an example
+	// 	}
+	// 	if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end())
+	// 	{
+	// 		std::cout << "Enabling noise reduction" << std::endl;
+	// 		src->controls.set(controls::draft::NoiseReductionMode, 2); // Example value for noise reduction
+	// 	}
+	// 	if (infoMap.find(&controls::AeMeteringMode) != infoMap.end())
+	// 	{
+	// 		std::cout << "Setting metering mode" << std::endl;
+	// 		src->controls.set(controls::AeMeteringMode, 1); // Example value for metering mode
+	// 	}
+	// }
 
 	return &src->src;
 
