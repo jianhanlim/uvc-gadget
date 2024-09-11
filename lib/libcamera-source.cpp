@@ -717,10 +717,10 @@ struct video_source *libcamera_source_create(const char *devname)
 			std::cout << "Enabling auto white balance" << std::endl;
 			src->controls.set(controls::AwbEnable, true);
 		}
-		if (infoMap.find(&controls::Brightness) != infoMap.end()) {
-		    std::cout << "Enabling Brightness" << std::endl;
-		    src->controls.set(controls::Brightness, 0.2);
-		}
+		// if (infoMap.find(&controls::Brightness) != infoMap.end()) {
+		//     std::cout << "Enabling Brightness" << std::endl;
+		//     src->controls.set(controls::Brightness, 0.2);
+		// }
 		// Set a specific exposure time
 		// if (infoMap.find(&controls::ExposureTime) != infoMap.end())
 		// {
