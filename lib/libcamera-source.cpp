@@ -707,11 +707,11 @@ struct video_source *libcamera_source_create(const char *devname)
 			std::cout << "Enabling continuous auto-focus" << std::endl;
 			src->controls.set(controls::AfMode, controls::AfModeContinuous);
 		}
-		if (infoMap.find(&controls::AeEnable) != infoMap.end())
-		{
-			std::cout << "Enabling auto exposure" << std::endl;
-			src->controls.set(controls::AeEnable, true);
-		}
+		// if (infoMap.find(&controls::AeEnable) != infoMap.end())
+		// {
+		// 	std::cout << "Enabling auto exposure" << std::endl;
+		// 	src->controls.set(controls::AeEnable, true);
+		// }
 		// if (infoMap.find(&controls::AwbEnable) != infoMap.end())
 		// {
 		// 	std::cout << "Enabling auto white balance" << std::endl;
