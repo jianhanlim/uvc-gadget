@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <map>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 
 #include <libcamera/libcamera.h>
 #include <linux/videodev2.h>
@@ -40,6 +41,16 @@ using namespace std::placeholders;
 namespace fs = std::filesystem;
 
 #define to_libcamera_source(s) container_of(s, struct libcamera_source, src)
+
+static int xioctl(int fd, unsigned long ctl, void *arg)
+{
+	int ret, num_tries = 10;
+	do
+	{
+		ret = ioctl(fd, ctl, arg);
+	} while (ret == -1 && errno == EINTR && num_tries-- > 0);
+	return ret;
+}
 
 static bool set_imx708_subdev_hdr_ctrl(int en, const std::string &cam_id)
 {
@@ -621,7 +632,7 @@ struct video_source *libcamera_source_create(const char *devname)
 	 */
 	if (std::isdigit(devname[0]))
 	{
-		unsigned long index = std::atoi(devname);
+		unsigned int index = std::atoi(devname);
 
 		if (index >= src->cm->cameras().size())
 		{
@@ -647,7 +658,7 @@ struct video_source *libcamera_source_create(const char *devname)
 
 			if (changed)
 			{
-				src->cm->cameras.clear();
+				src->cm->cameras().clear();
 				src->cm->start();
 			}
 		}
