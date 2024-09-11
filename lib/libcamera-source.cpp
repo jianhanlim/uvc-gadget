@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <map>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 
 #include <libcamera/libcamera.h>
 #include <linux/videodev2.h>
@@ -40,6 +41,16 @@ using namespace std::placeholders;
 namespace fs = std::filesystem;
 
 #define to_libcamera_source(s) container_of(s, struct libcamera_source, src)
+
+static int xioctl(int fd, unsigned long ctl, void *arg)
+{
+	int ret, num_tries = 10;
+	do
+	{
+		ret = ioctl(fd, ctl, arg);
+	} while (ret == -1 && errno == EINTR && num_tries-- > 0);
+	return ret;
+}
 
 static bool set_imx708_subdev_hdr_ctrl(int en, const std::string &cam_id)
 {
@@ -634,20 +645,20 @@ struct video_source *libcamera_source_create(const char *devname)
 		// This is the way HDR is activated in rpicam-vid. Check commit:
 		// `core: Better handling of IMX708 sensor HDR`
 		// in rpicam-apps project.
-		const std::string cam_id = src->camera->properties().get(libcamera::properties::Model);
+		const std::string cam_id = *src->camera->properties().get(libcamera::properties::Model);
 		if (cam_id.find("imx708") != std::string::npos)
 		{
 			// HDR control. Set the sensor control before opening or listing any cameras.
 			// Start by disabling HDR unconditionally. Reset the camera manager if we have
 			// actually switched the value of the control
-			bool changed = set_imx708_subdev_hdr_ctrl(0, src->cm->cameras[index]->id());
+			bool changed = set_imx708_subdev_hdr_ctrl(0, src->cm->cameras()[index]->id());
 
 			// Turn on sensor HDR.  Reset the camera manager if we have switched the value of the control.
-			changed |= set_imx708_subdev_hdr_ctrl(1, src->cm->cameras[index]->id());
+			changed |= set_imx708_subdev_hdr_ctrl(1, src->cm->cameras()[index]->id());
 
 			if (changed)
 			{
-				src->cm->cameras.clear();
+				src->cm->cameras().clear();
 				src->cm->start();
 			}
 		}
