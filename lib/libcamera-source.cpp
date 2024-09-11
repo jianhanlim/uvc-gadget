@@ -707,26 +707,26 @@ struct video_source *libcamera_source_create(const char *devname)
 			std::cout << "Enabling continuous auto-focus" << std::endl;
 			src->controls.set(controls::AfMode, controls::AfModeContinuous);
 		}
-		// if (infoMap.find(&controls::AeEnable) != infoMap.end())
-		// {
-		// 	std::cout << "Enabling auto exposure" << std::endl;
-		// 	src->controls.set(controls::AeEnable, true);
-		// }
+		if (infoMap.find(&controls::AeEnable) != infoMap.end())
+		{
+			std::cout << "Enabling auto exposure" << std::endl;
+			src->controls.set(controls::AeEnable, true);
+		}
 		if (infoMap.find(&controls::AwbEnable) != infoMap.end())
 		{
-			std::cout << "Enabling auto white balance" << std::endl;
+		 	std::cout << "Enabling auto white balance" << std::endl;
 			src->controls.set(controls::AwbEnable, true);
 		}
 		if (infoMap.find(&controls::Brightness) != infoMap.end()) {
-		    std::cout << "Enabling Brightness" << std::endl;
-		    src->controls.set(controls::Brightness, 0.2);
+		     std::cout << "Enabling Brightness" << std::endl;
+		     src->controls.set(controls::Brightness, 0.0);
 		}
 		// Set a specific exposure time
-		// if (infoMap.find(&controls::ExposureTime) != infoMap.end())
-		// {
-		// 	std::cout << "Setting custom exposure time" << std::endl;
-		// 	src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
-		// }
+//		if (infoMap.find(&controls::ExposureTime) != infoMap.end())
+//		{
+//		 	std::cout << "Setting custom exposure time" << std::endl;
+//		 	src->controls.set(controls::ExposureTime, 50000); // Example value in microseconds
+//		}
 		// Adjust the analogue gain if (infoMap.find(&controls::AnalogueGain) != infoMap.end())
 		{
 			std::cout << "Setting analogue gain" << std::endl;
