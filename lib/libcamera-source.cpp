@@ -712,11 +712,11 @@ struct video_source *libcamera_source_create(const char *devname)
 			std::cout << "Enabling auto exposure" << std::endl;
 			src->controls.set(controls::AeEnable, true);
 		}
-		if (infoMap.find(&controls::AwbEnable) != infoMap.end())
-		{
-			std::cout << "Enabling auto white balance" << std::endl;
-			src->controls.set(controls::AwbEnable, true);
-		}
+		// if (infoMap.find(&controls::AwbEnable) != infoMap.end())
+		// {
+		// 	std::cout << "Enabling auto white balance" << std::endl;
+		// 	src->controls.set(controls::AwbEnable, true);
+		// }
 		// if (infoMap.find(&controls::Brightness) != infoMap.end()) {
 		//     std::cout << "Enabling Brightness" << std::endl;
 		//     src->controls.set(controls::Brightness, 0.2);
@@ -730,7 +730,7 @@ struct video_source *libcamera_source_create(const char *devname)
 		// Adjust the analogue gain if (infoMap.find(&controls::AnalogueGain) != infoMap.end())
 		{
 			std::cout << "Setting analogue gain" << std::endl;
-			src->controls.set(controls::AnalogueGain, 2.0);
+			src->controls.set(controls::AnalogueGain, 1.0);
 		}
 		if (infoMap.find(&controls::draft::NoiseReductionMode) != infoMap.end())
 		{
