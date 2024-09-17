@@ -93,7 +93,7 @@ void MjpegEncoder::encodeJPEG(struct jpeg_compress_struct &cinfo, EncodeItem &it
     cv::cvtColor(yuv, rgb, cv::COLOR_YUV2BGR_I420);
 
     // Rotate the RGB frame by 90 degrees clockwise
-    cv::rotate(rgb, rotatedFrame, cv::ROTATE_90_CLOCKWISE);
+    cv::rotate(rgb, rotatedFrame, cv::ROTATE_90_COUNTERCLOCKWISE);
 
 	char timestamp[100];
     struct tm* tm_info;
